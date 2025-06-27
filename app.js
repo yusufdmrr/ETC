@@ -1,4 +1,3 @@
-// app.js
 const express = require('express');
 const connectDB = require('./db/connect');
 const compression = require('compression');
@@ -20,10 +19,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
-// middleware
 app.use(cors());
-// app.use(compression());
-// app.use(helmet());
 app.use(cookieParser());
 app.use(mongoSanitize());
 app.use(bodyParser.json());
