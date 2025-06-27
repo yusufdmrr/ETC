@@ -41,7 +41,7 @@ app.use(handlerMiddleware)
 
 
 connectDB()
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT || 3001;
 
+module.exports = { app, PORT };
 
-module.exports = { app, PORT }
