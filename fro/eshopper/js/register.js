@@ -11,7 +11,7 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
   }
 
   try {
-    const response = await axios.post("https://etc-l5tr.onrender.com/api/v1/clean/admin/register", {
+    const response = await axios.post("https://etc-9ryn.onrender.com/api/v1/clean/admin/register", {
       name,
       surname,
       email,

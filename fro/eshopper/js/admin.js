@@ -1,4 +1,4 @@
-const API = "https://etc-l5tr.onrender.com/api/v1/clean/admin";
+const API = "https://etc-9ryn.onrender.com/api/v1/clean/admin";
 
 function getToken() {
   const match = document.cookie.match(new RegExp("(^| )token=([^;]+)"));

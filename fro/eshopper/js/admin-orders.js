@@ -1,4 +1,4 @@
-const API_BASE = "https://etc-l5tr.onrender.com/api/v1/clean/admin";
+const API_BASE = "https://etc-9ryn.onrender.com/api/v1/clean/admin";
 const token = document.cookie.split("token=")[1];
 const headers = { headers: { Authorization: `Bearer ${token}` } };
 

@@ -1,4 +1,4 @@
-const API_BASE = "https://etc-l5tr.onrender.com/api/v1/clean/admin";
+const API_BASE = "https://etc-9ryn.onrender.com/api/v1/clean/admin";
 const productContainer = document.getElementById("productContainer");
 const categoryList = document.getElementById("categoryList");
 
@@ -66,7 +66,7 @@ function renderProducts(products) {
     col.className = "col-md-4 mb-4";
 
     // Render URL kullan
-    const imageUrl = `https://etc-l5tr.onrender.com/${product.image}`;
+    const imageUrl = `https://etc-9ryn.onrender.com/${product.image}`;
 
     col.innerHTML = `
       <div class="card h-100 shadow product-card">
