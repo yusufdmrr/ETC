@@ -39,7 +39,9 @@ initRoutes(app)
 app.use(notFound)
 app.use(handlerMiddleware)
 
-const PORT = process.env.PORT || 5000
+
 connectDB()
+const PORT = process.env.PORT || 3001
+
 
 module.exports = { app, PORT }
