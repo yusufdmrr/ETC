@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:3001/api/v1/clean/admin";
+const API_BASE = "https://etc-l5tr.onrender.com/api/v1/clean/admin";
 const token = document.cookie.split("token=")[1];
 const headers = { headers: { Authorization: `Bearer ${token}` } };
 
@@ -6,7 +6,7 @@ let selectedOrderId = null;
 
 async function fetchOrders() {
   try {
-    const res = await axios.post(`${API_BASE}/listOrders`, {}, headers);
+    const res = await axios.post(`${API_BASE}/getAllOrders`, {}, headers);
     const orders = res.data;
 
     const tbody = document.getElementById("orderTableBody");
@@ -17,20 +17,15 @@ async function fetchOrders() {
 
     for (const userId of userIdList) {
       try {
-        const resUser = await axios.post(`${API_BASE}/getUser`, { userId }, headers);
+        const resUser = await axios.post(`${API_BASE}/getUserById`, { userId }, headers);
         const user = resUser.data?.data || resUser.data;
-        if (user && user.email) {
-          userMap[userId] = user.email;
-        } else {
-          userMap[userId] = "Bilinmiyor";
-        }
+        userMap[userId] = user?.email || "Bilinmiyor";
       } catch {
         userMap[userId] = "Bilinmiyor";
       }
     }
 
-    for (let i = 0; i < orders.length; i++) {
-      const order = orders[i];
+    orders.forEach((order, i) => {
       const userEmail = order.userId ? (userMap[order.userId] || "Misafir") : "Misafir";
 
       const tr = document.createElement("tr");
@@ -46,7 +41,7 @@ async function fetchOrders() {
         </td>
       `;
       tbody.appendChild(tr);
-    }
+    });
   } catch (err) {
     console.error("fetchOrders hatası:", err);
     Swal.fire("Hata", "Siparişler alınamadı", "error");
@@ -57,7 +52,7 @@ async function showOrderDetail(orderId) {
   selectedOrderId = orderId;
   try {
     const res = await axios.post(`${API_BASE}/getOrderById`, { orderId }, headers);
-    const order = res.data.data;
+    const order = res.data;
 
     const list = document.getElementById("orderDetailList");
     list.innerHTML = "";
@@ -65,7 +60,7 @@ async function showOrderDetail(orderId) {
     let userName = "Misafir";
     if (order.userId) {
       try {
-        const userRes = await axios.post(`${API_BASE}/getUser`, { userId: order.userId }, headers);
+        const userRes = await axios.post(`${API_BASE}/getUserById`, { userId: order.userId }, headers);
         const user = userRes.data?.data || userRes.data;
         if (user?.name && user?.surname) {
           userName = `${user.name} ${user.surname}`;
@@ -81,8 +76,8 @@ async function showOrderDetail(orderId) {
     for (const p of order.products) {
       let productName = p.productId;
       try {
-        const productRes = await axios.post(`${API_BASE}/getProduct`, { productId: p.productId }, headers);
-        const product = productRes.data?.data;
+        const productRes = await axios.post(`${API_BASE}/getProductById`, { productId: p.productId }, headers);
+        const product = productRes.data?.data || productRes.data;
         productName = product?.name || p.productId;
       } catch (_) {}
 
@@ -117,7 +112,7 @@ async function updateOrderStatus() {
       status: status.trim()
     };
 
-    const response = await axios.post(`${API_BASE}/updateOrderStatus`, payload, headers);
+    await axios.post(`${API_BASE}/updateOrderStatus`, payload, headers);
 
     Swal.fire("Başarılı", "Sipariş durumu güncellendi", "success");
     fetchOrders();

@@ -1,112 +1,69 @@
-const cart = JSON.parse(localStorage.getItem("cart") || "{}");
-const userId = localStorage.getItem("userId") || "guest";
-const cartItemsContainer = document.getElementById("cartItems");
-const totalPriceElement = document.getElementById("totalPrice");
+const API = "https://etc-l5tr.onrender.com/api/v1/clean/admin";
 
-async function loadCartDetails() {
-  if (!cart[userId] || Object.keys(cart[userId]).length === 0) {
-    cartItemsContainer.innerHTML = '<tr><td colspan="5" class="text-center">Sepet boş</td></tr>';
-    totalPriceElement.innerText = "0₺";
-    return;
-  }
+function getToken() {
+  const match = document.cookie.match(new RegExp("(^| )token=([^;]+)"));
+  return match ? match[2] : null;
+}
 
+const headers = {
+  headers: {
+    Authorization: "Bearer " + getToken(),
+  },
+};
+
+function getUserId() {
+  return localStorage.getItem("userId") || "guest";
+}
+
+async function addToCart(productId, quantity = 1) {
   try {
-    const res = await axios.post("http://localhost:3001/api/v1/clean/admin/getAllProducts", {});
-    const allProducts = res.data;
-    let html = "", total = 0;
-
-    Object.keys(cart[userId]).forEach(pid => {
-      const product = allProducts.find(p => p._id === pid);
-      if (!product) return;
-      const qty = cart[userId][pid];
-      const subtotal = qty * product.price;
-      total += subtotal;
-
-      html += `
-        <tr>
-          <td><img src="http://localhost:3001/${product.image}" class="product-img"> ${product.name}</td>
-          <td>
-            <button class="btn btn-sm btn-outline-secondary me-1" onclick="decreaseQty('${pid}')">-</button>
-            ${qty}
-            <button class="btn btn-sm btn-outline-secondary ms-1" onclick="increaseQty('${pid}')">+</button>
-          </td>
-          <td>${product.price}₺</td>
-          <td>${subtotal}₺</td>
-          <td><button class="btn btn-sm btn-danger" onclick="removeItem('${pid}')"><i class="fas fa-trash"></i></button></td>
-        </tr>`;
-    });
-
-    cartItemsContainer.innerHTML = html;
-    totalPriceElement.innerText = total + "₺";
+    const userId = getUserId();
+    const res = await axios.post(`${API}/addToCart`, { userId, productId, quantity }, headers);
+    Swal.fire("Başarılı", "Ürün sepete eklendi", "success");
   } catch (err) {
-    console.error("Sepet yüklenemedi:", err);
-    Swal.fire("Hata", "Ürünler yüklenemedi", "error");
+    Swal.fire("Hata", "Sepete eklenirken hata oluştu", "error");
   }
 }
 
-function removeItem(pid) {
-  delete cart[userId][pid];
-  localStorage.setItem("cart", JSON.stringify(cart));
-  loadCartDetails();
-}
-
-function increaseQty(pid) {
-  cart[userId][pid]++;
-  localStorage.setItem("cart", JSON.stringify(cart));
-  loadCartDetails();
-}
-
-function decreaseQty(pid) {
-  if (cart[userId][pid] > 1) cart[userId][pid]--;
-  else delete cart[userId][pid];
-  localStorage.setItem("cart", JSON.stringify(cart));
-  loadCartDetails();
-}
-
-document.getElementById("continueShoppingBtn").addEventListener("click", () => {
-  window.location.href = "index.html";
-});
-
-document.getElementById("checkoutBtn").addEventListener("click", () => {
-  const token = document.cookie.match(/(^| )token=([^;]+)/);
-  if (token) {
-    // ✅ Giriş yapmış kullanıcılar ödeme sayfasına yönlendirilsin
-    window.location.href = "checkout.html";
-  } else {
-    // 🚫 Giriş yapılmamışsa modal aç
-    const modal = new bootstrap.Modal(document.getElementById("guestOrderModal"));
-    modal.show();
-  }
-});
-
-document.getElementById("guestOrderForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-
-  const name = document.getElementById("guestName").value.trim();
-  const email = document.getElementById("guestEmail").value.trim();
-  const phone = document.getElementById("guestPhone").value.trim();
-  const address = document.getElementById("guestAddress").value.trim();
-
-  const products = Object.entries(cart["guest"] || {}).map(([productId, quantity]) => ({
-    productId, quantity
-  }));
-
+async function loadCart() {
   try {
-    const res = await axios.post("http://localhost:3001/api/v1/clean/admin/guestOrder", {
-      name, email, phone, address, products
-    });
+    const userId = getUserId();
+    const res = await axios.post(`${API}/getCartByUserId`, { userId }, headers);
+    const cart = res.data;
+    const cartList = document.getElementById("cartList");
+    cartList.innerHTML = "";
 
-    if (res.data.success) {
-      Swal.fire("Başarılı", "Siparişiniz alındı", "success");
-      localStorage.removeItem("cart");
-      setTimeout(() => window.location.href = "index.html", 1500);
-    } else {
-      Swal.fire("Hata", res.data.message || "Sipariş alınamadı", "error");
+    let total = 0;
+    for (const item of cart.products) {
+      total += item.product.price * item.quantity;
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${item.product.name}</td>
+        <td>${item.quantity}</td>
+        <td>${item.product.price}₺</td>
+        <td>${item.product.price * item.quantity}₺</td>
+        <td><button class="btn btn-danger btn-sm" onclick="removeFromCart('${item._id}')">Sil</button></td>
+      `;
+      cartList.appendChild(row);
     }
-  } catch (err) {
-    console.error("Guest sipariş hatası:", err);
-    Swal.fire("Hata", "Sunucuya bağlanılamadı", "error");
+    document.getElementById("totalPrice").textContent = total + "₺";
+  } catch {
+    Swal.fire("Hata", "Sepet yüklenemedi", "error");
   }
-});
+}
 
-loadCartDetails();
+async function removeFromCart(cartItemId) {
+  try {
+    await axios.post(`${API}/removeFromCart`, { cartItemId }, headers);
+    await loadCart();
+    Swal.fire("Başarılı", "Ürün sepetten silindi", "success");
+  } catch {
+    Swal.fire("Hata", "Silme işlemi başarısız", "error");
+  }
+}
+
+window.onload = () => {
+  if (document.getElementById("cartList")) {
+    loadCart();
+  }
+};

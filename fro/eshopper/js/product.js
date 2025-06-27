@@ -1,4 +1,4 @@
-const API = "http://localhost:3001/api/v1/clean/admin";
+const API = "https://etc-l5tr.onrender.com/api/v1/clean/admin";
 
 function getToken() {
   const match = document.cookie.match(new RegExp("(^| )token=([^;]+)"));
@@ -116,7 +116,7 @@ function showUpdateModal(id, name, price, stock, description) {
 document.getElementById("updateForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const form = document.getElementById("updateForm");
-  const formData = new FormData(form); // ✅ productId dahil tüm alanları içerir
+  const formData = new FormData(form);
 
   try {
     await axios.post(`${API}/updateProduct`, formData, {
@@ -134,30 +134,7 @@ document.getElementById("updateForm").addEventListener("submit", async (e) => {
   }
 });
 
-
 document.getElementById("productForm").addEventListener("submit", addProduct);
-
-// document.getElementById("updateForm").addEventListener("submit", async (e) => {
-//   e.preventDefault();
-
-//   const form = document.getElementById("updateForm");
-//   const formData = new FormData(form);
-
-//   try {
-//     await axios.post(`${API}/updateProduct`, formData, {
-//       headers: {
-//         Authorization: "Bearer " + getToken(),
-//         "Content-Type": "multipart/form-data"
-//       },
-//     });
-
-//     Swal.fire("✔️", "Ürün güncellendi", "success");
-//     bootstrap.Modal.getInstance(document.getElementById("updateModal")).hide();
-//     await getAllProducts();
-//   } catch {
-//     Swal.fire("Hata", "Ürün güncellenemedi", "error");
-//   }
-// });
 
 window.onload = async () => {
   await getAllCategories();

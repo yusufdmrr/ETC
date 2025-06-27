@@ -65,7 +65,7 @@ function renderProducts(products) {
     const col = document.createElement("div");
     col.className = "col-md-4 mb-4";
 
-    // Burada localhost yerine Render URL kullanıyoruz:
+    // Render URL kullan
     const imageUrl = `https://etc-l5tr.onrender.com/${product.image}`;
 
     col.innerHTML = `
@@ -84,7 +84,6 @@ function renderProducts(products) {
   });
 }
 
-// Sepete ekleme
 function addToCart(productId) {
   const userId = localStorage.getItem("userId") || "guest";
   const cart = JSON.parse(localStorage.getItem("cart") || "{}");
@@ -104,7 +103,6 @@ function addToCart(productId) {
 }
 window.addToCart = addToCart;
 
-// Kategori yükleme
 async function loadCategories() {
   try {
     const categories = await getAllCategories();
@@ -123,7 +121,6 @@ async function loadCategories() {
   }
 }
 
-// Giriş durumuna göre butonları güncelle
 function updateAuthButtons() {
   const token = getJWTFromCookie();
   const userId = localStorage.getItem("userId");

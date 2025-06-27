@@ -1,6 +1,4 @@
-console.log("Admin panel yüklendi.");
-
-const API = "http://localhost:3001/api/v1/clean/admin";
+const API = "https://etc-l5tr.onrender.com/api/v1/clean/admin";
 
 function getToken() {
   const match = document.cookie.match(new RegExp("(^| )token=([^;]+)"));
@@ -13,161 +11,57 @@ const headers = {
   },
 };
 
-async function fetchPendingOrders() {
+async function getAllOrders() {
   try {
-    const res = await axios.post(`${API}/listOrders`, {}, headers);
-    const orders = res.data.filter(o => o.status === "beklemede");
+    const res = await axios.post(`${API}/getAllOrders`, {}, headers);
+    const orderList = document.getElementById("orderList");
+    orderList.innerHTML = "";
 
-    const tbody = document.getElementById("pendingOrders");
-    tbody.innerHTML = "";
-
-    if (orders.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Bekleyen sipariş yok.</td></tr>`;
-      return;
-    }
-
-    // 🔍 Kullanıcıları topluca al ve haritalandır
-    const userIdList = [...new Set(orders.map(o => o.userId).filter(Boolean))];
-    const userMap = {};
-
-    for (const userId of userIdList) {
-      try {
-        const userRes = await axios.post(`${API}/getUser`, { userId }, headers);
-        const user = userRes.data?.data || userRes.data;
-
-        if (user?.name && user?.surname) {
-          userMap[userId] = `${user.name} ${user.surname}`;
-        } else if (user?.email) {
-          userMap[userId] = user.email;
-        } else {
-          userMap[userId] = "Kayıtlı Kullanıcı";
-        }
-      } catch (err) {
-        console.warn(`Kullanıcı bulunamadı: ${userId}`);
-        userMap[userId] = "Kayıtlı Kullanıcı";
-      }
-    }
-
-    // 🔄 Siparişleri tabloya yaz
-    orders.forEach((o, i) => {
-      const userText = o.userId ? (userMap[o.userId] || "Kayıtlı Kullanıcı") : "Misafir Kullanıcı";
-
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
+    res.data.forEach((order, i) => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
         <td>${i + 1}</td>
-        <td>${userText}</td>
-        <td>${o.products.length}</td>
-        <td><span class="badge bg-warning text-dark">${o.status}</span></td>
+        <td>${order._id}</td>
+        <td>${new Date(order.createdAt).toLocaleString()}</td>
+        <td>${order.userId}</td>
+        <td>${order.status}</td>
         <td>
-          <button class="btn btn-sm btn-success" onclick="approveOrder('${o._id}')">
-            <i class="fas fa-check"></i> Onayla
+          <button class="btn btn-sm btn-primary" onclick="viewOrderDetails('${order._id}')">
+            Detay
           </button>
         </td>
       `;
-      tbody.appendChild(tr);
+      orderList.appendChild(row);
     });
   } catch (err) {
-    console.error("Bekleyen siparişler alınamadı:", err);
-    Swal.fire("Hata", "Siparişler getirilemedi.", "error");
+    Swal.fire("Hata", "Siparişler getirilemedi", "error");
   }
 }
 
-async function approveOrder(orderId) {
+async function viewOrderDetails(orderId) {
   try {
-    const confirm = await Swal.fire({
-      icon: "question",
-      title: "Sipariş Onayı",
-      text: "Bu siparişi onaylamak istiyor musunuz?",
-      showCancelButton: true,
-      confirmButtonText: "Evet, Onayla",
-    });
-    if (!confirm.isConfirmed) return;
+    const res = await axios.post(`${API}/getOrderById`, { orderId }, headers);
+    const order = res.data;
 
-    await axios.post(`${API}/updateOrderStatus`, {
-      orderId: orderId,
-      status: "hazırlanıyor"
-    }, headers);
+    const modalBody = document.getElementById("orderDetailsBody");
+    modalBody.innerHTML = `
+      <p><strong>Sipariş ID:</strong> ${order._id}</p>
+      <p><strong>Tarih:</strong> ${new Date(order.createdAt).toLocaleString()}</p>
+      <p><strong>Durum:</strong> ${order.status}</p>
+      <p><strong>Toplam Tutar:</strong> ${order.totalPrice}₺</p>
+      <p><strong>Ürünler:</strong></p>
+      <ul>
+        ${order.products.map(p => `<li>${p.name} - ${p.quantity} adet</li>`).join("")}
+      </ul>
+    `;
 
-    Swal.fire("✔️", "Sipariş hazırlanıyor durumuna alındı", "success");
-    fetchPendingOrders();
+    const modal = new bootstrap.Modal(document.getElementById("orderDetailsModal"));
+    modal.show();
   } catch (err) {
-    console.error("Onaylama hatası:", err);
-    Swal.fire("Hata", "Sipariş onaylanamadı.", "error");
+    Swal.fire("Hata", "Sipariş detayı alınamadı", "error");
   }
-}
-
-async function fetchTopSellingProducts() {
-  try {
-    const res = await axios.post(`${API}/listOrders`, {}, headers);
-    const orders = res.data;
-
-    const productCounts = {};
-
-    for (const order of orders) {
-      for (const item of order.products) {
-        const id = item.productId;
-        productCounts[id] = (productCounts[id] || 0) + item.quantity;
-      }
-    }
-
-    const sortedProducts = Object.entries(productCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5);
-
-    const tbody = document.getElementById("topProductsBody");
-    const labels = [];
-    const data = [];
-
-    tbody.innerHTML = "";
-
-    for (const [productId, quantity] of sortedProducts) {
-      try {
-        const productRes = await axios.post(`${API}/getProduct`, { productId }, headers);
-        const product = productRes.data.data;
-
-        tbody.innerHTML += `
-          <tr>
-            <td>${product.name}</td>
-            <td>${product.stock}</td>
-          </tr>
-        `;
-
-        labels.push(product.name);
-        data.push(quantity);
-      } catch (err) {
-        console.warn(`Ürün bilgisi alınamadı: ${productId}`);
-      }
-    }
-
-    renderChart(labels, data);
-  } catch (err) {
-    console.error("En çok satan ürünler alınamadı:", err);
-  }
-}
-
-function renderChart(labels, data) {
-  const ctx = document.getElementById("productChart").getContext("2d");
-  new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: labels,
-      datasets: [{
-        label: "Satış Adedi",
-        data: data,
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        y: { beginAtZero: true }
-      }
-    }
-  });
 }
 
 window.onload = () => {
-  fetchPendingOrders();
-  fetchTopSellingProducts(); // grafik de yüklensin
+  getAllOrders();
 };
-

@@ -5,7 +5,7 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
   const password = document.getElementById("password").value.trim();
 
   try {
-    const response = await axios.post("http://localhost:3001/api/v1/clean/admin/login", {
+    const response = await axios.post("https://etc-l5tr.onrender.com/api/v1/clean/admin/login", {
       email,
       password
     });
@@ -13,10 +13,7 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
     if (response.data.success) {
       const { token, user } = response.data;
 
-      // 🧠 Token'ı cookie'ye kaydet
       document.cookie = `token=${token}; path=/;`;
-
-      // 🧠 userId'yi localStorage'a kaydet
       localStorage.setItem("userId", user._id);
 
       Swal.fire({
@@ -25,7 +22,6 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
         timer: 1500,
         showConfirmButton: false,
       }).then(() => {
-        // 🎯 Rol kontrolü: admin ise admin.html, değilse index.html
         if (user.role === "admin") {
           window.location.href = "admin.html";
         } else {
